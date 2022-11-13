@@ -1,0 +1,61 @@
+stages:
+- stage: validate
+  jobs:
+    - job: validate
+      continueOnError: false
+      steps:
+      - task: TerraformInstaller@0
+        displayName: 'install'
+        inputs:
+          terraformVersion: '0.12.26'
+      - task: TerraformTaskV3@3
+        displayName: 'init'
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          backendServiceArm: 'azure-spn'
+          backendAzureRmResourceGroupName: 'terraform-rg'
+          backendAzureRmStorageAccountName: 'dxmxngrxssstrg'
+          backendAzureRmContainerName: 'dmlrcontainer'
+          backendAzureRmKey: 'terraform.tfstate'
+      - task: TerraformTaskV3@3
+        displayName: 'validate'
+        inputs:
+          provider: 'azurerm'
+          command: 'validate'
+- stage: deploy
+  jobs:
+    - deployment: deploy_terraform
+      continueOnError: false
+      environment: 'dev'
+      strategy:
+       runOnce:
+         deploy:
+          steps:
+            - checkout: self 
+            - task: TerraformInstaller@0
+              displayName: 'install'
+              inputs:
+                terraformVersion: '0.12.26'
+            - task: TerraformTaskV3@3
+              displayName: 'init'
+              inputs:
+                provider: 'azurerm'
+                command: 'init'
+                backendServiceArm: 'azure-spn'
+                backendAzureRmResourceGroupName: 'terraform-rg'
+                backendAzureRmStorageAccountName: 'dxmxngrxssstrg'
+                backendAzureRmContainerName: 'dmlrcontainer'
+                backendAzureRmKey: 'terraform.tfstate'
+            - task: TerraformTaskV3@3
+              displayName: 'plan'
+              inputs:
+                provider: 'azurerm'
+                command: 'plan'
+                environmentServiceNameAzureRM: 'azure-spn'
+            - task: TerraformTaskV3@3
+              displayName: 'apply'
+              inputs:
+                provider: 'azurerm'
+                command: 'apply'
+                environmentServiceNameAzureRM: 'azure-spn'
